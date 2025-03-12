@@ -14,9 +14,10 @@ function generateDefaultUser(): UserState {
     };
 }
 
-async function fetchUser(): Promise<UserState> {
+export async function fetchUser(): Promise<UserState> {
     const existingData = appStore.get("user", null);
     if (existingData) {
+        console.log("Existing user data found", existingData);
         return existingData;
     }
     const user = generateDefaultUser();
@@ -24,16 +25,10 @@ async function fetchUser(): Promise<UserState> {
     return user;
 }
 
+
 export function useUser() {
     const [user, setUser] = useState<UserState | null>(null);
     const [isLoading, setIsLoading] = useState<boolean | undefined>(undefined);
-
-    const joinGame = async (gameId: string) => {
-        if (user == null) return;
-        setIsLoading(true);
-        const updatedUser = { ...user, currentGameId: gameId };
-        setUser(updatedUser);
-    }
 
     useEffect(() => {
         if (user == null) {
@@ -43,9 +38,10 @@ export function useUser() {
             }).finally(() => {
                 setIsLoading(false);
             });
-            fetchUser();
+        } else {
+            appStore.set("user", user);
         }
     }, [user]);
 
-    return { user, joinGame, isLoading: isLoading ?? true };
+    return { user, isLoading: isLoading ?? true };
 }

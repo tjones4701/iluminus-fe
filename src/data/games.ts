@@ -1,6 +1,6 @@
 import { useAsync } from "react-use";
 import { callApi } from "./api";
-import { useUser } from "@/hooks/use-user";
+import { fetchUser, useUser } from "@/hooks/use-user";
 import { useEffect, useState } from "react";
 
 export type Game = {
@@ -20,18 +20,27 @@ export type GameInstance<T> = {
         name: string;
         type: string;
         description: string;
-
-    }
+    },
+    doAction: (actionName: string, ...args: any[]) => Promise<any>;
 }
 
 
+export  async function callAuthenticatedApi(url: string, method: string, body?: any) {
+    const user = await fetchUser();
+
+    const headers = {
+        'x-user-id': user.id,
+    };
+    return await callApi(url, method, body, headers);
+}
+
 export async function fetchGames(): Promise<Game[]> {
-    const response = await callApi('/games', "GET");
+    const response = await callAuthenticatedApi('/games', "GET");
     return response?.items;
 }
 
 export async function fetchGame<T>(id: string, userId: string): Promise<GameInstance<T>> {
-    const response = await callApi(`/games/${id}?userId=${userId}`, "GET");
+    const response = await callAuthenticatedApi(`/games/${id}?userId=${userId}`, "GET");
     return response?.data;
 }
 
@@ -47,8 +56,13 @@ const fetchingGames = new Map<string, boolean>();
 export async function fetchGameData<T>(id: string, userId: string): Promise<GameInstance<T>> {
     if (fetchingGames.get(id)) return null as any;
     fetchingGames.set(id, true);
-    const response = await callApi(`/games/${id}?userId=${userId}`, "GET");
+    const response = await callAuthenticatedApi(`/games/${id}?userId=${userId}`, "GET");
     fetchingGames.delete(id);
+    return response?.data;
+}
+
+async function doGameAction(id: string, actionName: string, args: any[]) {
+    const response = await callAuthenticatedApi(`/games/${id}/actions`, "POST", { actionName: actionName, data: args });
     return response?.data;
 }
 
@@ -77,5 +91,16 @@ export function useGame<T = any>(id: string) {
         return () => clearInterval(interval);
     }, [id, user]);
 
-    return { value: gameData, loading: !gameData || isLoading };
+
+    const doAction = async (actionName: string, ...args: any[]) => {
+        if (!gameData) return;
+        await doGameAction(gameData.metadata.id, actionName, args);
+    }
+
+    const value = {
+        ...gameData,
+        doAction: doAction,
+    }
+
+    return { value: value, loading: !gameData || isLoading };
 }

@@ -121,7 +121,7 @@ export class LocalStore {
     }
 
     generateKey(key: string): string {
-        return this.prefix + "_" + key;
+        return this.prefix + "-" + key;
     }
 
     get(key: string, def: any = null): any {
@@ -144,20 +144,23 @@ export class LocalStore {
             }
             return true;
         } catch (e) {
+            console.error(e);
             return false;
         }
     }
 
     getStorageItem(key: string): StorageItem | null {
         const localStoreKey = this.generateKey(key);
-        if (localStoreKey == null) {
+        if (localStoreKey != null) {
             try {
                 const localStoreString = localStorage.getItem(localStoreKey);
                 if (localStoreString != null) {
                     const val = JSON.parse(localStoreString);
                     return new StorageItem(this, key, val.value, val.expiry);
                 }
-            } catch (_e) { }
+            } catch (_e) {
+                console.error(_e);
+            }
         }
         return null;
     }
@@ -170,6 +173,7 @@ export class LocalStore {
             localStorage.setItem(key, data);
             return storageItem;
         } catch (e) {
+            console.error("Error saving storage item", e);
             return null;
         }
     }
@@ -255,6 +259,7 @@ export class LocalStore {
 
             return itemKeys;
         } catch (e) {
+            console.error(e);
             return [];
         }
     }
@@ -267,7 +272,9 @@ export class LocalStore {
             try {
                 const val = this.get(itemKey);
                 values[itemKey] = val;
-            } catch (e) { }
+            } catch (e) {
+                console.error(e);
+            }
         }
         return values;
     }
@@ -284,7 +291,9 @@ export class LocalStore {
                 if (storageItemKey != null) {
                     storageItems[storageItemKey] = storageItem;
                 }
-            } catch (e) { }
+            } catch (e) {
+                console.error(e);
+            }
         }
 
         return storageItems;
@@ -294,5 +303,5 @@ export class LocalStore {
     }
 }
 
-const appStore = new LocalStore("app");
-export default appStore;
+const defaultAppStore = new LocalStore("ia");
+export default defaultAppStore;
